@@ -321,6 +321,12 @@ public class ChatController : ControllerBase
                 _logger.LogWarning("Azure Function URL not configured. Skipping conversation save.");
                 return;
             }
+            
+            if (string.IsNullOrEmpty(functionKey))
+            {
+                _logger.LogWarning("Azure Function key not configured. Skipping conversation save.");
+                return;
+            }
 
             // Format the conversation data according to the Azure Function's expected schema
             var messages = new[]
