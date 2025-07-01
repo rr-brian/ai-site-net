@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Linq;
 
 namespace Backend.Controllers;
 
@@ -119,6 +120,43 @@ public class ChatController : ControllerBase
     }
 
     // Test endpoint for Azure Function diagnostics
+    [HttpGet("env-check")]
+    public ActionResult<object> CheckEnvironmentVariables()
+    {
+        try
+        {
+            // Get the actual values (with sensitive parts redacted)
+            var apiKey = _configuration["OpenAI:ApiKey"] ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            var endpoint = _configuration["OpenAI:Endpoint"] ?? Environment.GetEnvironmentVariable("OPENAI_ENDPOINT");
+            var deploymentName = _configuration["OpenAI:DeploymentName"] ?? Environment.GetEnvironmentVariable("OPENAI_DEPLOYMENT_NAME");
+            var apiVersion = _configuration["OpenAI:ApiVersion"] ?? Environment.GetEnvironmentVariable("OPENAI_API_VERSION");
+            var functionUrl = _configuration["AzureFunction:Url"] ?? Environment.GetEnvironmentVariable("AZURE_FUNCTION_URL");
+            var functionKey = _configuration["AzureFunction:Key"] ?? Environment.GetEnvironmentVariable("AZURE_FUNCTION_KEY");
+            
+            return Ok(new
+            {
+                OPENAI_API_KEY = !string.IsNullOrEmpty(apiKey) ? "[REDACTED]" : null,
+                OPENAI_ENDPOINT = endpoint,
+                OPENAI_DEPLOYMENT_NAME = deploymentName,
+                OPENAI_API_VERSION = apiVersion,
+                AZURE_FUNCTION_URL = functionUrl,
+                AZURE_FUNCTION_KEY = !string.IsNullOrEmpty(functionKey) ? "[REDACTED]" : null,
+                Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+                AllEnvironmentVariables = Environment.GetEnvironmentVariables()
+                    .Cast<System.Collections.DictionaryEntry>()
+                    .Where(e => !e.Key.ToString().Contains("SECRET") && 
+                                !e.Key.ToString().Contains("KEY") && 
+                                !e.Key.ToString().Contains("PASSWORD"))
+                    .ToDictionary(e => e.Key.ToString(), e => e.Value?.ToString())
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking environment variables");
+            return StatusCode(500, $"Error checking environment variables: {ex.Message}");
+        }
+    }
+
     [HttpGet("test-function")]
     public async Task<IActionResult> TestAzureFunction()
     {

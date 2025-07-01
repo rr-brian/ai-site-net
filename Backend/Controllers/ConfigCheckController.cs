@@ -24,10 +24,11 @@ public class ConfigCheckController : ControllerBase
             // Check all required configuration values
             var configCheck = new
             {
-                OpenAI_API_KEY_Set = !string.IsNullOrEmpty(_configuration["OpenAI:ApiKey"] ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")),
-                OpenAI_ENDPOINT_Set = !string.IsNullOrEmpty(_configuration["OpenAI:Endpoint"] ?? Environment.GetEnvironmentVariable("OPENAI_ENDPOINT")),
-                OpenAI_DEPLOYMENT_NAME_Set = !string.IsNullOrEmpty(_configuration["OpenAI:DeploymentName"] ?? Environment.GetEnvironmentVariable("OPENAI_DEPLOYMENT_NAME")),
-                OpenAI_API_VERSION_Set = !string.IsNullOrEmpty(_configuration["OpenAI:ApiVersion"] ?? Environment.GetEnvironmentVariable("OPENAI_API_VERSION")),
+                // Use exact same casing and access pattern as ChatController
+                OPENAI_API_KEY_Set = !string.IsNullOrEmpty(_configuration["OpenAI:ApiKey"] ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")),
+                OPENAI_ENDPOINT_Set = !string.IsNullOrEmpty(_configuration["OpenAI:Endpoint"] ?? Environment.GetEnvironmentVariable("OPENAI_ENDPOINT")),
+                OPENAI_DEPLOYMENT_NAME_Set = !string.IsNullOrEmpty(_configuration["OpenAI:DeploymentName"] ?? Environment.GetEnvironmentVariable("OPENAI_DEPLOYMENT_NAME")),
+                OPENAI_API_VERSION_Set = !string.IsNullOrEmpty(_configuration["OpenAI:ApiVersion"] ?? Environment.GetEnvironmentVariable("OPENAI_API_VERSION")),
                 AZURE_FUNCTION_URL_Set = !string.IsNullOrEmpty(_configuration["AzureFunction:Url"] ?? Environment.GetEnvironmentVariable("AZURE_FUNCTION_URL")),
                 AZURE_FUNCTION_KEY_Set = !string.IsNullOrEmpty(_configuration["AzureFunction:Key"] ?? Environment.GetEnvironmentVariable("AZURE_FUNCTION_KEY")),
                 Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Not Set",
