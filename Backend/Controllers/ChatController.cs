@@ -334,6 +334,151 @@ public class ChatController : ControllerBase
         }
     }
     
+    public class ChatHistoryRequest
+    {
+        [JsonPropertyName("messages")]
+        public List<ChatHistoryMessage> Messages { get; set; } = new List<ChatHistoryMessage>();
+    }
+    
+    public class ChatHistoryMessage
+    {
+        [JsonPropertyName("role")]
+        public string Role { get; set; } = "";
+        
+        [JsonPropertyName("content")]
+        public string Content { get; set; } = "";
+        
+        [JsonPropertyName("timestamp")]
+        public string Timestamp { get; set; } = "";
+    }
+    
+    [HttpPost("download-history")]
+    public IActionResult DownloadChatHistory([FromBody] ChatHistoryRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Received download history request");
+            
+            // Create a JSON object with metadata and messages
+            var chatData = new
+            {
+                metadata = new
+                {
+                    title = "RAI Chat Transcript",
+                    generated = DateTime.UtcNow.ToString("o"),
+                    version = "1.0"
+                },
+                messages = request.Messages
+            };
+            
+            // Serialize to JSON with indentation
+            var jsonOptions = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            string jsonContent = JsonSerializer.Serialize(chatData, jsonOptions);
+            
+            // Create a memory stream with the JSON content
+            var stream = new System.IO.MemoryStream();
+            var writer = new System.IO.StreamWriter(stream);
+            writer.Write(jsonContent);
+            writer.Flush();
+            stream.Position = 0;
+            
+            // Return as a file download
+            string fileName = $"rai-chat-{DateTime.UtcNow.ToString("yyyy-MM-dd")}.json";
+            return File(stream, "application/json", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating chat history download");
+            return StatusCode(500, new { error = "Error generating chat history download" });
+        }
+    }
+    
+    // Alternative endpoint that accepts form data for better browser compatibility
+    [HttpPost("download-history"), Consumes("application/x-www-form-urlencoded")]
+    public IActionResult DownloadChatHistoryForm([FromForm] string messages)
+    {
+        try
+        {
+            _logger.LogInformation("Received form-based download history request");
+            
+            // Deserialize the messages from the form data
+            ChatHistoryRequest? request = null;
+            
+            try {
+                request = JsonSerializer.Deserialize<ChatHistoryRequest>(messages);
+            }
+            catch (Exception ex) {
+                _logger.LogError(ex, "Error deserializing messages from form");
+                // Create a simple text file as fallback
+                var textStream = new System.IO.MemoryStream();
+                var textWriter = new System.IO.StreamWriter(textStream);
+                textWriter.Write("RAI Chat Transcript\r\nError processing messages. Using raw data.\r\n\r\n" + messages);
+                textWriter.Flush();
+                textStream.Position = 0;
+                
+                return File(textStream, "text/plain", $"rai-chat-{DateTime.UtcNow.ToString("yyyy-MM-dd")}.txt");
+            }
+            
+            if (request == null || request.Messages == null || !request.Messages.Any())
+            {
+                _logger.LogWarning("No messages found in download request");
+                var emptyStream = new System.IO.MemoryStream();
+                var emptyWriter = new System.IO.StreamWriter(emptyStream);
+                emptyWriter.Write("RAI Chat Transcript\r\nNo messages found.\r\n");
+                emptyWriter.Flush();
+                emptyStream.Position = 0;
+                
+                return File(emptyStream, "text/plain", $"rai-chat-{DateTime.UtcNow.ToString("yyyy-MM-dd")}.txt");
+            }
+            
+            // Create a JSON object with metadata and messages
+            var chatData = new
+            {
+                metadata = new
+                {
+                    title = "RAI Chat Transcript",
+                    generated = DateTime.UtcNow.ToString("o"),
+                    version = "1.0"
+                },
+                messages = request.Messages
+            };
+            
+            // Serialize to JSON with indentation
+            var jsonOptions = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            string jsonContent = JsonSerializer.Serialize(chatData, jsonOptions);
+            
+            // Create a memory stream with the JSON content
+            var stream = new System.IO.MemoryStream();
+            var writer = new System.IO.StreamWriter(stream);
+            writer.Write(jsonContent);
+            writer.Flush();
+            stream.Position = 0;
+            
+            // Return as a file download
+            string fileName = $"rai-chat-{DateTime.UtcNow.ToString("yyyy-MM-dd")}.json";
+            return File(stream, "application/json", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating chat history download from form");
+            
+            // Return a simple error text file as fallback
+            var errorStream = new System.IO.MemoryStream();
+            var errorWriter = new System.IO.StreamWriter(errorStream);
+            errorWriter.Write("RAI Chat Transcript\r\nAn error occurred while generating the download.\r\n");
+            errorWriter.Flush();
+            errorStream.Position = 0;
+            
+            return File(errorStream, "text/plain", $"rai-chat-error-{DateTime.UtcNow.ToString("yyyy-MM-dd")}.txt");
+        }
+    }
+    
     [HttpGet("test-function")]
     public async Task<IActionResult> TestAzureFunction()
     {

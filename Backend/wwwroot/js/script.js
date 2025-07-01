@@ -29,28 +29,67 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.appendChild(welcomeMessage);
     });
     
-    // Download chat functionality
+    // Download chat functionality - Simple direct approach
     downloadChatButton.addEventListener('click', () => {
-        // Create text content from chat messages
-        let chatContent = '';
-        const messages = chatMessages.querySelectorAll('.message');
-        
-        messages.forEach(message => {
-            const isBot = message.classList.contains('bot-message');
-            const content = message.textContent.trim();
-            chatContent += `${isBot ? 'RAI: ' : 'You: '}${content}\n\n`;
-        });
-        
-        // Create a blob and download link
-        const blob = new Blob([chatContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `rai-chat-${new Date().toISOString().slice(0, 10)}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        try {
+            // Show a loading indicator
+            const originalTitle = downloadChatButton.getAttribute('title') || 'Download Chat';
+            downloadChatButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            downloadChatButton.setAttribute('title', 'Preparing download...');
+            
+            // Create text content from chat messages
+            let textContent = "RAI Chat Transcript\r\n";
+            textContent += `Generated: ${new Date().toLocaleString()}\r\n\r\n`;
+            
+            const messages = chatMessages.querySelectorAll('.message');
+            messages.forEach(message => {
+                // Skip typing indicators
+                if (message.classList.contains('typing-indicator')) return;
+                
+                // Determine sender
+                const isBot = message.classList.contains('bot-message');
+                const isSystem = message.classList.contains('system-message');
+                const sender = isBot ? 'RAI' : (isSystem ? 'System' : 'You');
+                
+                // Get message content
+                let content = message.textContent.trim();
+                
+                // Add to chat content
+                textContent += `${sender}: ${content}\r\n\r\n`;
+            });
+            
+            // Create a download link for the text file
+            const blob = new Blob([textContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rai-chat-${new Date().toISOString().slice(0, 10)}.txt`;
+            
+            // Append link, trigger click, and clean up
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up after a short delay
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Restore the button
+                downloadChatButton.innerHTML = '<i class="fas fa-download"></i>';
+                downloadChatButton.setAttribute('title', originalTitle);
+                
+                console.log('Download initiated');
+            }, 100);
+        } catch (error) {
+            console.error('Error downloading chat:', error);
+            
+            // Show error message
+            addMessage('Sorry, there was an error downloading the chat history.', 'system');
+            
+            // Restore the button
+            downloadChatButton.innerHTML = '<i class="fas fa-download"></i>';
+            downloadChatButton.setAttribute('title', 'Download Chat');
+        }
     });
     
     // Clear document context functionality
