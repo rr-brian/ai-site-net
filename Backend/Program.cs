@@ -49,6 +49,17 @@ app.UseDefaultFiles();
 // Use static files from the wwwroot folder
 app.UseStaticFiles();
 
+// Add cache control headers for HTML files to prevent browser caching
+app.Use(async (context, next) => {
+    if (context.Request.Path.Value.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ||
+        context.Request.Path.Value == "/") {
+        context.Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate");
+        context.Response.Headers.Add("Pragma", "no-cache");
+        context.Response.Headers.Add("Expires", "0");
+    }
+    await next();
+});
+
 // Use CORS
 app.UseCors("AllowAll");
 
