@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAI - Your AI Assistant</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo-container">
+                <img src="images/logo.png" alt="Logo" class="header-logo">
+                <h1>RAI - Your AI Assistant</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="#" class="active">Chat</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <div class="status-indicator online"></div>
+                    <h2>RAI - Your AI Assistant</h2>
+                </div>
+                <div class="chat-actions">
+                    <button class="action-button" id="clearChatButton" title="Clear Chat"><i class="fas fa-trash-alt"></i></button>
+                    <button class="action-button" id="downloadChatButton" title="Download Chat"><i class="fas fa-download"></i></button>
+                    <button class="action-button" id="clearDocumentButton" title="Clear Document Context"><i class="fas fa-file-circle-xmark"></i></button>
+                    <label class="action-button" id="uploadButton" title="Upload Document">
+                        <i class="fas fa-file-upload"></i>
+                        <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx" hidden>
+                    </label>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                    <div class="message-content">
+                        <p>Hello! I'm RAI, your AI assistant. How can I help you today?</p>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <textarea id="userInput" placeholder="Type your message here..." rows="1"></textarea>
+                <button id="sendButton">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="footer-bottom">
+            <p>RAI - Your AI Assistant | Powered by RTS and Azure OpenAI on GPT4.1</p>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
