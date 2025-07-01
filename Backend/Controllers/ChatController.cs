@@ -41,18 +41,30 @@ public class ChatController : ControllerBase
     {
         try
         {
-            // Get configuration values
-            var apiKey = _configuration["OpenAI:ApiKey"] ?? 
-                Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-            var endpoint = _configuration["OpenAI:Endpoint"] ?? 
-                Environment.GetEnvironmentVariable("OPENAI_ENDPOINT") ?? 
-                "https://generalsearchai.openai.azure.com/";
-            var deploymentName = _configuration["OpenAI:DeploymentName"] ?? 
-                Environment.GetEnvironmentVariable("OPENAI_DEPLOYMENT_NAME") ?? 
-                "gpt-4.1";
-            var apiVersion = _configuration["OpenAI:ApiVersion"] ?? 
-                Environment.GetEnvironmentVariable("OPENAI_API_VERSION") ?? 
-                "2025-01-01-preview";
+            // Get configuration values - try multiple approaches to access environment variables
+            string apiKey = null;
+            string endpoint = null;
+            string deploymentName = null;
+            string apiVersion = null;
+            
+            // Try direct environment variables first
+            apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            endpoint = Environment.GetEnvironmentVariable("OPENAI_ENDPOINT");
+            deploymentName = Environment.GetEnvironmentVariable("OPENAI_DEPLOYMENT_NAME") ?? "gpt-4.1";
+            apiVersion = Environment.GetEnvironmentVariable("OPENAI_API_VERSION") ?? "2025-01-01-preview";
+            
+            // If not found, try configuration
+            if (string.IsNullOrEmpty(apiKey))
+                apiKey = _configuration["OpenAI:ApiKey"];
+                
+            if (string.IsNullOrEmpty(endpoint))
+                endpoint = _configuration["OpenAI:Endpoint"] ?? "https://generalsearchai.openai.azure.com/";
+                
+            // Log what we found
+            _logger.LogInformation($"API Key found: {!string.IsNullOrEmpty(apiKey)}");
+            _logger.LogInformation($"Endpoint: {endpoint}");
+            _logger.LogInformation($"Deployment: {deploymentName}");
+            _logger.LogInformation($"API Version: {apiVersion}");
 
             if (string.IsNullOrEmpty(apiKey))
             {
@@ -125,29 +137,84 @@ public class ChatController : ControllerBase
     {
         try
         {
-            // Get the actual values (with sensitive parts redacted)
-            var apiKey = _configuration["OpenAI:ApiKey"] ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-            var endpoint = _configuration["OpenAI:Endpoint"] ?? Environment.GetEnvironmentVariable("OPENAI_ENDPOINT");
-            var deploymentName = _configuration["OpenAI:DeploymentName"] ?? Environment.GetEnvironmentVariable("OPENAI_DEPLOYMENT_NAME");
-            var apiVersion = _configuration["OpenAI:ApiVersion"] ?? Environment.GetEnvironmentVariable("OPENAI_API_VERSION");
-            var functionUrl = _configuration["AzureFunction:Url"] ?? Environment.GetEnvironmentVariable("AZURE_FUNCTION_URL");
-            var functionKey = _configuration["AzureFunction:Key"] ?? Environment.GetEnvironmentVariable("AZURE_FUNCTION_KEY");
+            // Try different ways to access environment variables
+            var directApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            var configApiKey = _configuration["OpenAI:ApiKey"];
+            var combinedApiKey = configApiKey ?? directApiKey;
+            
+            var directEndpoint = Environment.GetEnvironmentVariable("OPENAI_ENDPOINT");
+            var configEndpoint = _configuration["OpenAI:Endpoint"];
+            var combinedEndpoint = configEndpoint ?? directEndpoint;
+            
+            var directDeploymentName = Environment.GetEnvironmentVariable("OPENAI_DEPLOYMENT_NAME");
+            var configDeploymentName = _configuration["OpenAI:DeploymentName"];
+            var combinedDeploymentName = configDeploymentName ?? directDeploymentName;
+            
+            var directApiVersion = Environment.GetEnvironmentVariable("OPENAI_API_VERSION");
+            var configApiVersion = _configuration["OpenAI:ApiVersion"];
+            var combinedApiVersion = configApiVersion ?? directApiVersion;
+            
+            var directFunctionUrl = Environment.GetEnvironmentVariable("AZURE_FUNCTION_URL");
+            var configFunctionUrl = _configuration["AzureFunction:Url"];
+            var combinedFunctionUrl = configFunctionUrl ?? directFunctionUrl;
+            
+            var directFunctionKey = Environment.GetEnvironmentVariable("AZURE_FUNCTION_KEY");
+            var configFunctionKey = _configuration["AzureFunction:Key"];
+            var combinedFunctionKey = configFunctionKey ?? directFunctionKey;
+            
+            // Get all environment variables for debugging
+            var allEnvVars = new Dictionary<string, string>();
+            foreach (System.Collections.DictionaryEntry de in Environment.GetEnvironmentVariables())
+            {
+                string key = de.Key.ToString();
+                if (!key.Contains("SECRET") && !key.Contains("KEY") && !key.Contains("PASSWORD"))
+                {
+                    allEnvVars[key] = de.Value?.ToString();
+                }
+            }
+            
+            // Get all configuration values for debugging
+            var allConfigValues = new Dictionary<string, string>();
+            foreach (var config in _configuration.AsEnumerable())
+            {
+                if (!config.Key.Contains("Secret") && !config.Key.Contains("Key") && !config.Key.Contains("Password"))
+                {
+                    allConfigValues[config.Key] = config.Value;
+                }
+            }
             
             return Ok(new
             {
-                OPENAI_API_KEY = !string.IsNullOrEmpty(apiKey) ? "[REDACTED]" : null,
-                OPENAI_ENDPOINT = endpoint,
-                OPENAI_DEPLOYMENT_NAME = deploymentName,
-                OPENAI_API_VERSION = apiVersion,
-                AZURE_FUNCTION_URL = functionUrl,
-                AZURE_FUNCTION_KEY = !string.IsNullOrEmpty(functionKey) ? "[REDACTED]" : null,
+                DirectAccess = new
+                {
+                    OPENAI_API_KEY_Direct = !string.IsNullOrEmpty(directApiKey) ? "[REDACTED]" : null,
+                    OPENAI_ENDPOINT_Direct = directEndpoint,
+                    OPENAI_DEPLOYMENT_NAME_Direct = directDeploymentName,
+                    OPENAI_API_VERSION_Direct = directApiVersion,
+                    AZURE_FUNCTION_URL_Direct = directFunctionUrl,
+                    AZURE_FUNCTION_KEY_Direct = !string.IsNullOrEmpty(directFunctionKey) ? "[REDACTED]" : null
+                },
+                ConfigAccess = new
+                {
+                    OPENAI_API_KEY_Config = !string.IsNullOrEmpty(configApiKey) ? "[REDACTED]" : null,
+                    OPENAI_ENDPOINT_Config = configEndpoint,
+                    OPENAI_DEPLOYMENT_NAME_Config = configDeploymentName,
+                    OPENAI_API_VERSION_Config = configApiVersion,
+                    AZURE_FUNCTION_URL_Config = configFunctionUrl,
+                    AZURE_FUNCTION_KEY_Config = !string.IsNullOrEmpty(configFunctionKey) ? "[REDACTED]" : null
+                },
+                CombinedAccess = new
+                {
+                    OPENAI_API_KEY_Combined = !string.IsNullOrEmpty(combinedApiKey) ? "[REDACTED]" : null,
+                    OPENAI_ENDPOINT_Combined = combinedEndpoint,
+                    OPENAI_DEPLOYMENT_NAME_Combined = combinedDeploymentName,
+                    OPENAI_API_VERSION_Combined = combinedApiVersion,
+                    AZURE_FUNCTION_URL_Combined = combinedFunctionUrl,
+                    AZURE_FUNCTION_KEY_Combined = !string.IsNullOrEmpty(combinedFunctionKey) ? "[REDACTED]" : null
+                },
                 Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
-                AllEnvironmentVariables = Environment.GetEnvironmentVariables()
-                    .Cast<System.Collections.DictionaryEntry>()
-                    .Where(e => !e.Key.ToString().Contains("SECRET") && 
-                                !e.Key.ToString().Contains("KEY") && 
-                                !e.Key.ToString().Contains("PASSWORD"))
-                    .ToDictionary(e => e.Key.ToString(), e => e.Value?.ToString())
+                AllEnvironmentVariables = allEnvVars,
+                AllConfigurationValues = allConfigValues
             });
         }
         catch (Exception ex)
