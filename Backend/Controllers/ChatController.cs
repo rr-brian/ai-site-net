@@ -244,20 +244,24 @@ public class ChatController : ControllerBase
                 return BadRequest(new { Error = "Azure Function URL not configured. Please set the AZURE_FUNCTION_URL environment variable." });
             }
 
-            // Create a minimal test payload
+            // Create test payload with the updated format
             var testPayload = new
             {
-                conversationId = "test-conversation-" + Guid.NewGuid().ToString(),
+                conversationId = Guid.NewGuid().ToString("D"),  // Format as 32 digits without hyphens
                 userId = "test-user",
                 userEmail = "test@example.com",
                 chatType = "test",
-                messages = new[] 
-                { 
+                messages = new[]
+                {
                     new { role = "user", content = "Test message" },
                     new { role = "assistant", content = "Test response" }
                 },
                 totalTokens = 0,
-                metadata = new { source = "test", timestamp = DateTime.UtcNow.ToString("o") }
+                metadata = new
+                {
+                    source = "test",
+                    timestamp = DateTime.UtcNow.ToString("o")
+                }
             };
 
             // Build the URL with the function key
@@ -305,8 +309,8 @@ public class ChatController : ControllerBase
     {
         try
         {
-            // Generate a unique conversation ID
-            var conversationId = Guid.NewGuid().ToString();
+            // Generate a unique conversation ID - use a pure GUID without prefix
+            var conversationId = Guid.NewGuid().ToString("D"); // Format as 32 digits without hyphens
             
             // Get Azure Function configuration
             var functionUrl = _configuration["AzureFunction:Url"] ?? 
@@ -335,13 +339,20 @@ public class ChatController : ControllerBase
                 new { role = "assistant", content = aiResponse }
             };
 
-            // Create the conversation payload
+            // Create the conversation payload with additional metadata expected by the Azure Function
             var conversation = new
             {
                 conversationId = conversationId,
                 userId = "web-user",
                 userEmail = "anonymous@example.com",
-                messages = messages
+                chatType = "web",  // Add chat type
+                messages = messages,
+                totalTokens = 0,    // Add token count (we don't track this currently)
+                metadata = new     // Add metadata
+                {
+                    source = "web",
+                    timestamp = DateTime.UtcNow.ToString("o")
+                }
             };
 
             // Build the URL with the function key
