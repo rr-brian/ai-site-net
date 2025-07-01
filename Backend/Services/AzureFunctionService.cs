@@ -28,8 +28,8 @@ namespace Backend.Services
         {
             try
             {
-                // Generate a unique conversation ID - use a pure GUID without prefix
-                var conversationId = Guid.NewGuid().ToString("D"); // Format as 32 digits without hyphens
+                // Generate a unique conversation ID for each message
+                var conversationId = Guid.NewGuid().ToString("D");
                 
                 // Get Azure Function configuration
                 var functionUrl = _configuration["AzureFunction:Url"] ?? 
@@ -59,14 +59,24 @@ namespace Backend.Services
                 };
 
                 // Create the conversation payload with additional metadata expected by the Azure Function
-                // Get anonymous user info from configuration or use defaults
+                // Get user info from configuration or generate unique values
                 var userId = _configuration["AzureFunction:UserId"] ?? 
-                    Environment.GetEnvironmentVariable("AZURE_FUNCTION_USER_ID") ?? 
-                    "anonymous-user";
+                    Environment.GetEnvironmentVariable("AZURE_FUNCTION_USER_ID");
                     
                 var userEmail = _configuration["AzureFunction:UserEmail"] ?? 
-                    Environment.GetEnvironmentVariable("AZURE_FUNCTION_USER_EMAIL") ?? 
-                    "anonymous@example.com".Replace("example.com", "anonymous.com");
+                    Environment.GetEnvironmentVariable("AZURE_FUNCTION_USER_EMAIL");
+                
+                // If not configured, generate a unique user ID with a timestamp
+                if (string.IsNullOrEmpty(userId))
+                {
+                    userId = $"user-{DateTime.UtcNow.Ticks}";
+                }
+                
+                // If not configured, generate a unique email with a timestamp
+                if (string.IsNullOrEmpty(userEmail))
+                {
+                    userEmail = $"user-{DateTime.UtcNow.Ticks}@realtyts.com";
+                }
                 
                 var conversation = new
                 {
@@ -102,8 +112,15 @@ namespace Backend.Services
                 var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
                 request.Content = new StringContent(requestJson, System.Text.Encoding.UTF8, "application/json");
                 
+                // Log detailed request information
+                _logger.LogInformation("Sending conversation with ID: {ConversationId}, UserId: {UserId}, UserEmail: {UserEmail}",
+                    conversationId, userId, userEmail);
+                
                 // Send the request
                 var response = await _httpClient.SendAsync(request);
+                
+                // Log response status
+                _logger.LogInformation("Azure Function response status: {StatusCode}", response.StatusCode);
                 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -115,6 +132,9 @@ namespace Backend.Services
                 {
                     var successContent = await response.Content.ReadAsStringAsync();
                     _logger.LogInformation("Conversation saved successfully. Response: {Response}", successContent);
+                    
+                    // Log success details
+                    _logger.LogInformation("Successfully saved conversation with ID: {ConversationId}", conversationId);
                 }
             }
             catch (Exception ex)
